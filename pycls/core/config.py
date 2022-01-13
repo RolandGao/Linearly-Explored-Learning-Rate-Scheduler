@@ -352,7 +352,7 @@ _C.TEST.WEIGHTS = ""
 _C.DATA_LOADER = CfgNode()
 
 # Number of data loader workers per process
-_C.DATA_LOADER.NUM_WORKERS = 8
+_C.DATA_LOADER.NUM_WORKERS = 4
 
 # Load data to pinned host memory
 _C.DATA_LOADER.PIN_MEMORY = True
@@ -403,7 +403,7 @@ _C.LAUNCH.EMAIL = ""
 _C.DESC = ""
 
 # If True output additional info to log
-_C.VERBOSE = True
+_C.VERBOSE = False
 
 # Number of GPUs to use (applies to both training and testing)
 _C.NUM_GPUS = 1
@@ -421,10 +421,10 @@ _C.CFG_DEST = "config.yaml"
 _C.RNG_SEED = 1
 
 # Log destination ('stdout' or 'file')
-_C.LOG_DEST = "stdout"
+_C.LOG_DEST = "file"
 
 # Log period in iters
-_C.LOG_PERIOD = 10
+_C.LOG_PERIOD = 100
 
 # Distributed backend
 _C.DIST_BACKEND = "nccl"
