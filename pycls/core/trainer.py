@@ -83,13 +83,10 @@ def get_weights_file(weights_file):
     return weights_file
 
 
-def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoch):
+def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoch, prev_lr):
     """Performs one epoch of training."""
     # Shuffle the data
     data_loader.shuffle(loader, cur_epoch)
-    # Update the learning rate
-    lr = optim.get_epoch_lr(cur_epoch)
-    optim.set_lr(optimizer, lr)
     # Enable training mode
     model.train()
     ema.train()
@@ -109,6 +106,12 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         # Perform the backward pass and update the parameters
         optimizer.zero_grad()
         scaler.scale(loss).backward()
+        # Update the learning rate
+        if cfg.OPTIM.LR_POLICY=="les":
+            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, prev_lr, optimizer)
+        else:
+            lr = optim.get_epoch_lr(cur_epoch)
+        optim.set_lr(optimizer, lr)
         scaler.step(optimizer)
         scaler.update()
         # Update ema weights
@@ -125,6 +128,13 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         meter.update_stats(top1_err, top5_err, loss, lr, mb_size)
         meter.log_iter_stats(cur_epoch, cur_iter)
         meter.iter_tic()
+        if cfg.OPTIM.LR_POLICY=="les":
+            les_data={
+                "best_lr": lr,
+                "lr_to_loss":lr_to_loss,
+                "loss": loss,
+            }
+            logger.info(logging.dump_log_data(les_data,"les"))
     # Log epoch stats
     meter.log_epoch_stats(cur_epoch)
 
@@ -189,10 +199,11 @@ def train_model():
         benchmark.compute_time_full(model, loss_fun, train_loader, test_loader)
     # Perform the training loop
     logger.info("Start epoch: {}".format(start_epoch + 1))
+    prev_lr=0.01
     for cur_epoch in range(start_epoch, cfg.OPTIM.MAX_EPOCH):
         # Train for one epoch
         params = (train_loader, model, ema, loss_fun, optimizer, scaler, train_meter)
-        train_epoch(*params, cur_epoch)
+        train_epoch(*params, cur_epoch, prev_lr)
         # Compute precise BN stats
         if cfg.BN.USE_PRECISE_STATS:
             net.compute_precise_bn_stats(model, train_loader)

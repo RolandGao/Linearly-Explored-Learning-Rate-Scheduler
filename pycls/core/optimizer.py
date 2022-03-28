@@ -70,6 +70,15 @@ def construct_optimizer(model):
             betas=(optim.BETA1, optim.BETA2),
             weight_decay=wd,
         )
+    elif optim.OPTIMIZER == "vanilla_sgd":
+        optimizer = VanillaSGD(
+            param_wds,
+            lr=optim.BASE_LR,
+            momentum=optim.MOMENTUM,
+            weight_decay=wd,
+            dampening=optim.DAMPENING,
+            nesterov=optim.NESTEROV,
+        )
     else:
         raise NotImplementedError
     return optimizer
@@ -118,7 +127,6 @@ def get_epoch_lr(cur_epoch):
         lr *= warmup_factor
     return lr
 
-
 def set_lr(optimizer, new_lr):
     """Sets the optimizer lr to the specified value."""
     for param_group in optimizer.param_groups:
@@ -135,3 +143,80 @@ def plot_lr_fun():
     plt.ylabel("learning rate")
     plt.ylim(bottom=0)
     plt.show()
+
+
+def get_neighbour_lrs(lr,num):
+    lrs=np.linspace(lr/2,lr*1.5,num=num)
+    lrs=np.round(lrs,3)
+    lrs=list(lrs)
+    return lrs
+def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
+    lr_to_loss={}
+    cur_lr=0
+    lrs=get_neighbour_lrs(prev_lr, 5)
+    with torch.no_grad():
+        # incorporate weight decay into p.grad
+        # this also means the actual optimizer.step()
+        # doesn't need to use weight decay again
+        for group in optimizer.param_groups:
+            weight_decay=group["weight_decay"]
+            for p in group["params"]:
+                if p.grad is not None:
+                    p.grad.add_(p,alpha=weight_decay)
+
+        for lr in lrs:
+            change_in_lr=lr-cur_lr
+            cur_lr=lr
+            for p in model.parameters():
+                p.add_(p.grad,alpha=-change_in_lr)
+            output = model(image)
+            loss = loss_fun(output, target)
+            lr_to_loss[lr]=loss.item()
+        for p in model.parameters():
+            p.add_(p.grad,alpha=cur_lr)
+    best_lr=min(lr_to_loss, key=lr_to_loss.get)
+    return best_lr, lr_to_loss
+
+
+class VanillaSGD(torch.optim.Optimizer):
+
+    def __init__(self, params, lr=0.1, momentum=0, dampening=0,
+                 weight_decay=0, nesterov=False):
+        if lr < 0.0:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+        if momentum < 0.0:
+            raise ValueError("Invalid momentum value: {}".format(momentum))
+        if weight_decay < 0.0:
+            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+
+        defaults = dict(lr=lr, momentum=momentum, dampening=dampening,
+                        weight_decay=weight_decay, nesterov=nesterov)
+        if nesterov and (momentum <= 0 or dampening != 0):
+            raise ValueError("Nesterov momentum requires a momentum and zero dampening")
+        super().__init__(params, defaults)
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        for group in self.param_groups:
+            group.setdefault('nesterov', False)
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        """Performs a single optimization step.
+
+        Args:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
+        loss = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            lr = group['lr']
+            for p in group['params']:
+                if p.grad is not None:
+                    p.add_(p.grad,alpha=-lr)
+
+        return loss

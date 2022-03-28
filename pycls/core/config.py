@@ -412,7 +412,7 @@ _C.NUM_GPUS = 1
 _C.MAX_GPUS_PER_NODE = 8
 
 # Output directory
-_C.OUT_DIR = "/tmp"
+_C.OUT_DIR = "."
 
 # Config destination (in OUT_DIR)
 _C.CFG_DEST = "config.yaml"
@@ -420,7 +420,13 @@ _C.CFG_DEST = "config.yaml"
 # Note that non-determinism is still be present due to non-deterministic GPU ops
 _C.RNG_SEED = 1
 
+
+# if cfg.LOG_DEST == "stdout":
+#     logging_config["stream"] = sys.stdout
+# else:
+#     logging_config["filename"] = os.path.join(cfg.OUT_DIR, _LOG_FILE)
 # Log destination ('stdout' or 'file')
+# _LOG_FILE = "stdout.log"
 _C.LOG_DEST = "file"
 
 # Log period in iters
