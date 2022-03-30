@@ -83,7 +83,7 @@ def get_weights_file(weights_file):
     return weights_file
 
 
-def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoch, prev_lr):
+def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoch, lr):
     """Performs one epoch of training."""
     # Shuffle the data
     data_loader.shuffle(loader, cur_epoch)
@@ -108,7 +108,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         scaler.scale(loss).backward()
         # Update the learning rate
         if cfg.OPTIM.LR_POLICY=="les":
-            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, prev_lr, optimizer)
+            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, lr, optimizer)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
         optim.set_lr(optimizer, lr)
@@ -137,7 +137,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
             logger.info(logging.dump_log_data(les_data,"les"))
     # Log epoch stats
     meter.log_epoch_stats(cur_epoch)
-
+    return lr
 
 @torch.no_grad()
 def test_epoch(loader, model, meter, cur_epoch):
@@ -199,11 +199,11 @@ def train_model():
         benchmark.compute_time_full(model, loss_fun, train_loader, test_loader)
     # Perform the training loop
     logger.info("Start epoch: {}".format(start_epoch + 1))
-    prev_lr=0.01
+    prev_lr=0.1
     for cur_epoch in range(start_epoch, cfg.OPTIM.MAX_EPOCH):
         # Train for one epoch
         params = (train_loader, model, ema, loss_fun, optimizer, scaler, train_meter)
-        train_epoch(*params, cur_epoch, prev_lr)
+        prev_lr=train_epoch(*params, cur_epoch, prev_lr)
         # Compute precise BN stats
         if cfg.BN.USE_PRECISE_STATS:
             net.compute_precise_bn_stats(model, train_loader)

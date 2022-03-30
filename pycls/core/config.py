@@ -421,12 +421,12 @@ _C.CFG_DEST = "config.yaml"
 _C.RNG_SEED = 1
 
 
+# _LOG_FILE = "stdout.log"
 # if cfg.LOG_DEST == "stdout":
 #     logging_config["stream"] = sys.stdout
 # else:
 #     logging_config["filename"] = os.path.join(cfg.OUT_DIR, _LOG_FILE)
 # Log destination ('stdout' or 'file')
-# _LOG_FILE = "stdout.log"
 _C.LOG_DEST = "file"
 
 # Log period in iters

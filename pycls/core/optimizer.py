@@ -146,6 +146,7 @@ def plot_lr_fun():
 
 
 def get_neighbour_lrs(lr,num):
+    # return [0.01,0.02,0.05,0.1,0.5,1.0]
     lrs=np.linspace(lr/2,lr*1.5,num=num)
     lrs=np.round(lrs,3)
     lrs=list(lrs)
