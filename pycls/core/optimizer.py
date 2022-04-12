@@ -151,35 +151,64 @@ def get_neighbour_lrs(lr,num):
     lrs=np.round(lrs,3)
     lrs=list(lrs)
     return lrs
+
 def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
     lr_to_loss={}
-    cur_lr=0
+    cur_lr=0 # no previous lr, set to 0
+
     lrs=get_neighbour_lrs(prev_lr, 5)
     with torch.no_grad():
         # incorporate weight decay into p.grad
-        # this also means the actual optimizer.step()
+        # also means the actual optimizer.step()
         # doesn't need to use weight decay again
         for group in optimizer.param_groups:
-            weight_decay=group["weight_decay"]
-            for p in group["params"]:
-                if p.grad is not None:
-                    p.grad.add_(p,alpha=weight_decay)
+            weight_decay = group["weight_decay"]
+            momentum = group['momentum']
 
+            for p in group["params"]:
+                state = model.state[p]
+                if p.grad is not None:
+                    
+                    if weight_decay != 0: 
+                        p.grad.add_(p,alpha=weight_decay)
+                    
+                    # update momentum_buffers in the state
+                    if momentum != 0:
+                        # initializing momentum buffer
+                        if 'momentum_buffer' not in state:
+                            state['momentum_buffer'] = torch.clone(p.grad).detach()
+                        # updating momentum buffer
+                        else:
+                            state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
+                        
+        # testing each learning rate
         for lr in lrs:
-            change_in_lr=lr-cur_lr
-            cur_lr=lr
+            # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
+            # simplify:     p <- p + (prev_lr - cur_lr) * p.grad 
+            #               p <- p + change_in_lr * p.grad
+            change_in_lr = lr - cur_lr
+            cur_lr = lr
             for p in model.parameters():
-                p.add_(p.grad,alpha=-change_in_lr)
+                state = model.state[p]
+                momentum_buf = state.get('momentum_buffer', p.grad)
+                p.add_(momentum_buf, alpha=-change_in_lr)
+
             output = model(image)
             loss = loss_fun(output, target)
-            lr_to_loss[lr]=loss.item()
+            lr_to_loss[lr] = loss.item()
+
+        # reverting the learning rate that is applied
         for p in model.parameters():
             p.add_(p.grad,alpha=cur_lr)
-    best_lr=min(lr_to_loss, key=lr_to_loss.get)
+
+    best_lr = min(lr_to_loss, key=lr_to_loss.get)
     return best_lr, lr_to_loss
 
 
 class VanillaSGD(torch.optim.Optimizer):
+    """Modified SGD only updating lr
+    momentum and weight decay is separated into get_iter_lr
+    """
 
     def __init__(self, params, lr=0.1, momentum=0, dampening=0,
                  weight_decay=0, nesterov=False):
