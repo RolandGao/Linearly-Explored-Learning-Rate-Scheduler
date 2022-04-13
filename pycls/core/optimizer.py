@@ -168,28 +168,29 @@ def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
             for p in group["params"]:
                 state = optimizer.state[p]
                 if p.grad is not None:
-                    
+
                     # weight decay
-                    p.grad.add_(p,alpha=weight_decay)
-                    
-                    # update momentum_buffers in the state
-                    if 'momentum_buffer' not in state:
-                    # initializing momentum buffer
-                        state['momentum_buffer'] = torch.clone(p.grad).detach()
-                    # updating momentum buffer
-                    else:
-                        state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
-                        
+                    if weight_decay != 0:
+                        p.grad.add_(p,alpha=weight_decay)
+
+                    if momentum != 0:
+                        # update momentum_buffers in the state
+                        if 'momentum_buffer' not in state:
+                        # initializing momentum buffer
+                            state['momentum_buffer'] = torch.clone(p.grad).detach()
+                        # updating momentum buffer
+                        else:
+                            state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
+                        p.grad=torch.clone(state["momentum_buffer"])
+
         # testing each learning rate
         for lr in lrs:
             # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
-            # simplify:     p <- p + (prev_lr - cur_lr) * p.grad 
+            # simplify:     p <- p + (prev_lr - cur_lr) * p.grad
             #               p <- p + change_in_lr * p.grad
             change_in_lr = lr - cur_lr
             cur_lr = lr
             for p in model.parameters():
-                state = optimizer.state[p]
-                p.grad = state.get('momentum_buffer', p.grad)
                 p.add_(p.grad, alpha=-change_in_lr)
 
             output = model(image)
