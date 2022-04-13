@@ -12,3 +12,4 @@ simplejson
 submitit
 yacs
 yattag
+torchvision

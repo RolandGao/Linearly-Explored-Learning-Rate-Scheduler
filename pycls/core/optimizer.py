@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from pycls.core.config import cfg
+from collections import deque
 
 
 def construct_optimizer(model):
@@ -144,64 +145,123 @@ def plot_lr_fun():
     plt.ylim(bottom=0)
     plt.show()
 
-
-def get_neighbour_lrs(lr,num):
-    # return [0.01,0.02,0.05,0.1,0.5,1.0]
+def get_lrs1():
+    lr=cfg.OPTIM.BASE_LR
+    if hasattr(get_lrs1,"prev_lr"):
+        lr=get_lrs1.prev_lr
+    num=5
     lrs=np.linspace(lr/2,lr*1.5,num=num)
-    lrs=np.round(lrs,3)
+    lrs=np.round(lrs,4)
     lrs=list(lrs)
     return lrs
 
-def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
+def get_neighbour_lrs():
+    # return [0,0.01,0.02,0.05,0.1,0.5,1.0]
+    lr=cfg.OPTIM.BASE_LR
+    num=5
+    lrs=np.linspace(lr/2,lr*1.5,num=num)
+    lrs=np.round(lrs,4)
+    lrs=list(lrs)
+    return lrs
+
+class LR_Finder:
+    def __init__(self,version=1,history_len=10):
+        self.prev_lrs=deque(maxlen=history_len)
+        self.version=version
+    def get_prev_lr(self):
+        if len(self.prev_lrs) != 0:
+            return self.prev_lrs[-1]
+        return cfg.OPTIM.BASE_LR
+    def get_lrs(self):
+        if self.version==1:
+            lr=self.get_prev_lr()
+            lrs=np.linspace(lr/2,lr*1.5,num=5)
+        elif self.version==2:
+            lrs=[0.0, 0.001,0.005,0.01,0.02,0.05,0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        elif self.version==3:
+            lr=self.get_prev_lr()
+            lrs=np.linspace(lr/2,lr*2,num=10)
+            lrs=[0]+list(lrs)
+        elif self.version==4:
+            lr=self.get_prev_lr()
+            lrs=np.linspace(lr/3,lr*3,num=10)
+            lrs=[0]+list(lrs)
+        elif self.version==5:
+            lr=self.get_prev_lr()
+            lrs=np.linspace(lr/10,lr*10,num=20)
+            lrs=[0]+list(lrs)
+        elif self.version==6:
+            mean=np.mean(self.prev_lrs)
+            std=np.std(self.prev_lrs)
+            lrs=list(np.linspace(mean-std*2,mean+std*2,num=10))
+        else:
+            raise NotImplementedError()
+        lrs=[max(round(lr,4),0) for lr in list(lrs)]
+        lrs=sorted(set(lrs))
+        return lrs
+    def determine_best_lr(self,lr_to_loss):
+        best_lr = min(lr_to_loss, key=lr_to_loss.get)
+        self.prev_lrs.append(best_lr)
+        return best_lr
+
+
+@torch.no_grad()
+def setup_p_grad(optimizer):
+    # incorporate weight decay into p.grad
+    # also means the actual optimizer.step()
+    # doesn't need to use weight decay again
+    for group in optimizer.param_groups:
+        weight_decay = group["weight_decay"]
+        momentum = group['momentum']
+
+        for p in group["params"]:
+            state = optimizer.state[p]
+            if p.grad is not None:
+
+                # weight decay
+                if weight_decay != 0:
+                    p.grad.add_(p,alpha=weight_decay)
+
+                if momentum != 0:
+                    # update momentum_buffers in the state
+                    if 'momentum_buffer' not in state:
+                        # initializing momentum buffer
+                        state['momentum_buffer'] = torch.clone(p.grad).detach()
+                    # updating momentum buffer
+                    else:
+                        state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
+                    p.grad=torch.clone(state["momentum_buffer"])
+
+@torch.no_grad()
+def get_iter_lr(model, loss_fun, image, target, optimizer):
     lr_to_loss={}
     cur_lr=0 # no previous lr, set to 0
+    if hasattr(get_iter_lr,"lr_finder"):
+        lr_finder=get_iter_lr.lr_finder
+    else:
+        lr_finder=LR_Finder(version=cfg.OPTIM.VERSION, history_len=10)
+    lrs=lr_finder.get_lrs()
+    setup_p_grad(optimizer)
 
-    lrs=get_neighbour_lrs(prev_lr, 5)
-    with torch.no_grad():
-        # incorporate weight decay into p.grad
-        # also means the actual optimizer.step()
-        # doesn't need to use weight decay again
-        for group in optimizer.param_groups:
-            weight_decay = group["weight_decay"]
-            momentum = group['momentum']
-
-            for p in group["params"]:
-                state = optimizer.state[p]
-                if p.grad is not None:
-
-                    # weight decay
-                    if weight_decay != 0:
-                        p.grad.add_(p,alpha=weight_decay)
-
-                    if momentum != 0:
-                        # update momentum_buffers in the state
-                        if 'momentum_buffer' not in state:
-                        # initializing momentum buffer
-                            state['momentum_buffer'] = torch.clone(p.grad).detach()
-                        # updating momentum buffer
-                        else:
-                            state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
-                        p.grad=torch.clone(state["momentum_buffer"])
-
-        # testing each learning rate
-        for lr in lrs:
-            # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
-            # simplify:     p <- p + (prev_lr - cur_lr) * p.grad
-            #               p <- p + change_in_lr * p.grad
-            change_in_lr = lr - cur_lr
-            cur_lr = lr
-            for p in model.parameters():
-                p.add_(p.grad, alpha=-change_in_lr)
-
-            output = model(image)
-            loss = loss_fun(output, target)
-            lr_to_loss[lr] = loss.item()
-
-        # reverting the learning rate that is applied
+    # testing each learning rate
+    for lr in lrs:
+        # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
+        # simplify:     p <- p + (prev_lr - cur_lr) * p.grad
+        #               p <- p + change_in_lr * p.grad
+        change_in_lr = lr - cur_lr
+        cur_lr = lr
         for p in model.parameters():
-            p.add_(p.grad,alpha=cur_lr)
+            p.add_(p.grad, alpha=-change_in_lr)
 
-    best_lr = min(lr_to_loss, key=lr_to_loss.get)
+        output = model(image)
+        loss = loss_fun(output, target)
+        lr_to_loss[lr] = loss.item()
+
+    # reverting the learning rate that is applied
+    for p in model.parameters():
+        p.add_(p.grad,alpha=cur_lr)
+
+    best_lr=lr_finder.determine_best_lr(lr_to_loss)
     return best_lr, lr_to_loss
 
 
