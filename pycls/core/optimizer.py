@@ -238,6 +238,8 @@ def get_iter_lr_edward(model, loss_fun, image, target, optimizer, cur_epoch):
     cur_lr = 0
     target_lr = lr_fun_cos(cur_epoch)
     lrs = np.linspace(target_lr/1.5, target_lr*1.5, num=10)
+    lrs = np.round(lrs, 4)
+    lrs = list(lrs)
 
     setup_p_grad(optimizer)
 
