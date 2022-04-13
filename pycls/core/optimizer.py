@@ -169,17 +169,16 @@ def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
                 state = optimizer.state[p]
                 if p.grad is not None:
                     
-                    if weight_decay != 0: 
-                        p.grad.add_(p,alpha=weight_decay)
+                    # weight decay
+                    p.grad.add_(p,alpha=weight_decay)
                     
                     # update momentum_buffers in the state
-                    if momentum != 0:
-                        # initializing momentum buffer
-                        if 'momentum_buffer' not in state:
-                            state['momentum_buffer'] = torch.clone(p.grad).detach()
-                        # updating momentum buffer
-                        else:
-                            state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
+                    if 'momentum_buffer' not in state:
+                    # initializing momentum buffer
+                        state['momentum_buffer'] = torch.clone(p.grad).detach()
+                    # updating momentum buffer
+                    else:
+                        state['momentum_buffer'].mul_(momentum).add_(p.grad, alpha=1)
                         
         # testing each learning rate
         for lr in lrs:
@@ -190,8 +189,8 @@ def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
             cur_lr = lr
             for p in model.parameters():
                 state = optimizer.state[p]
-                momentum_buf = state.get('momentum_buffer', p.grad)
-                p.add_(momentum_buf, alpha=-change_in_lr)
+                p.grad = state.get('momentum_buffer', p.grad)
+                p.add_(p.grad, alpha=-change_in_lr)
 
             output = model(image)
             loss = loss_fun(output, target)
