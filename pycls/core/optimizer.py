@@ -145,25 +145,15 @@ def plot_lr_fun():
     plt.ylim(bottom=0)
     plt.show()
 
-def get_lrs1():
-    lr=cfg.OPTIM.BASE_LR
-    if hasattr(get_lrs1,"prev_lr"):
-        lr=get_lrs1.prev_lr
-    num=5
-    lrs=np.linspace(lr/2,lr*1.5,num=num)
-    lrs=np.round(lrs,4)
-    lrs=list(lrs)
-    return lrs
-
-def get_neighbour_lrs():
-    # return [0,0.01,0.02,0.05,0.1,0.5,1.0]
-    lr=cfg.OPTIM.BASE_LR
-    num=5
-    lrs=np.linspace(lr/2,lr*1.5,num=num)
-    lrs=np.round(lrs,4)
-    lrs=list(lrs)
-    return lrs
-
+def plot_les_lr_fun(start_epoch, lrs):
+    """Visualizes les lr function."""
+    epochs = list(range(start_epoch, cfg.OPTIM.MAX_EPOCH))
+    plt.plot(epochs, lrs, ".-")
+    plt.title("lr_policy: {}".format(cfg.OPTIM.LR_POLICY))
+    plt.xlabel("epochs")
+    plt.ylabel("learning rate")
+    plt.ylim(bottom=0)
+    plt.show()
 class LR_Finder:
     def __init__(self,version=1,history_len=10):
         self.prev_lrs=deque(maxlen=history_len)
