@@ -166,7 +166,7 @@ def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
             momentum = group['momentum']
 
             for p in group["params"]:
-                state = model.state[p]
+                state = optimizer.state[p]
                 if p.grad is not None:
                     
                     if weight_decay != 0: 
@@ -189,7 +189,7 @@ def get_iter_lr(model, loss_fun, image, target, prev_lr, optimizer):
             change_in_lr = lr - cur_lr
             cur_lr = lr
             for p in model.parameters():
-                state = model.state[p]
+                state = optimizer.state[p]
                 momentum_buf = state.get('momentum_buffer', p.grad)
                 p.add_(momentum_buf, alpha=-change_in_lr)
 
