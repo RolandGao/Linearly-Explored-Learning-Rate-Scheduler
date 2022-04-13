@@ -244,6 +244,8 @@ _C.OPTIM = CfgNode()
 # Type of optimizer select from {'sgd', 'adam', 'adamw'}
 _C.OPTIM.OPTIMIZER = "sgd"
 
+_C.OPTIM.VERSION=1
+
 # Learning rate ranges from BASE_LR to MIN_LR*BASE_LR according to the LR_POLICY
 _C.OPTIM.BASE_LR = 0.1
 _C.OPTIM.MIN_LR = 0.0
