@@ -12,7 +12,7 @@ REGNET:
   GROUP_W: 8
 OPTIM:
   BASE_LR: 0.01
-  LR_POLICY: les
+  LR_POLICY: edward
   VERSION: 1
   OPTIMIZER: vanilla_sgd
   MAX_EPOCH: 50
