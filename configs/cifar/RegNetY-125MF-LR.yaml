@@ -12,7 +12,7 @@ REGNET:
   GROUP_W: 8
 OPTIM:
   BASE_LR: 1.0
-  LR_POLICY: les
+  LR_POLICY: cos
   OPTIMIZER: vanilla_sgd
   MAX_EPOCH: 50
   ### these following three parameters are not used when lr_policy is les
