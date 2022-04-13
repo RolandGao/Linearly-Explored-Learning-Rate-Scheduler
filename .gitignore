@@ -28,3 +28,8 @@ pycls/datasets/data/
 # Other
 logs/
 scratch*
+
+# pipenv requirements file and vscode settings
+Pipfile
+Pipfile.lock
+.vscode/settings.json
