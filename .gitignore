@@ -33,3 +33,5 @@ scratch*
 Pipfile
 Pipfile.lock
 .vscode/settings.json
+
+submit.sh

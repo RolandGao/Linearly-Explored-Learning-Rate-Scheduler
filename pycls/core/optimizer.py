@@ -226,10 +226,9 @@ def setup_p_grad(optimizer):
 def get_iter_lr(model, loss_fun, image, target, optimizer):
     lr_to_loss={}
     cur_lr=0 # no previous lr, set to 0
-    if hasattr(get_iter_lr,"lr_finder"):
-        lr_finder=get_iter_lr.lr_finder
-    else:
-        lr_finder=LR_Finder(version=cfg.OPTIM.VERSION, history_len=10)
+    if not hasattr(get_iter_lr,"lr_finder"):
+        get_iter_lr.lr_finder=LR_Finder(version=cfg.OPTIM.VERSION, history_len=10)
+    lr_finder=get_iter_lr.lr_finder
     lrs=lr_finder.get_lrs()
     setup_p_grad(optimizer)
 
