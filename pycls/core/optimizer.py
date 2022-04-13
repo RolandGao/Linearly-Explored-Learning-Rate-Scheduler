@@ -233,6 +233,37 @@ def setup_p_grad(optimizer):
                     p.grad=torch.clone(state["momentum_buffer"])
 
 @torch.no_grad()
+def get_iter_lr_edward(model, loss_fun, image, target, optimizer, cur_epoch):
+    lr_to_loss = dict()
+    cur_lr = 0
+    target_lr = lr_fun_cos(cur_epoch)
+    lrs = np.linspace(target_lr/1.5, target_lr*1.5, num=10)
+
+    setup_p_grad(optimizer)
+
+    # testing each learning rate
+    for lr in lrs:
+        # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
+        # simplify:     p <- p + (prev_lr - cur_lr) * p.grad
+        #               p <- p + change_in_lr * p.grad
+        change_in_lr = lr - cur_lr
+        cur_lr = lr
+        for p in model.parameters():
+            p.add_(p.grad, alpha=-change_in_lr)
+
+        output = model(image)
+        loss = loss_fun(output, target)
+        lr_to_loss[lr] = loss.item()
+
+    # reverting the learning rate that is applied
+    for p in model.parameters():
+        p.add_(p.grad, alpha=cur_lr)
+
+    best_lr = min(lr_to_loss, key=lr_to_loss.get)
+    return best_lr, lr_to_loss
+
+
+@torch.no_grad()
 def get_iter_lr(model, loss_fun, image, target, optimizer):
     lr_to_loss={}
     cur_lr=0 # no previous lr, set to 0

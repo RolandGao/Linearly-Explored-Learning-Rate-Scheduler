@@ -109,6 +109,8 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         # Update the learning rate
         if cfg.OPTIM.LR_POLICY=="les":
             lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, optimizer)
+        elif cfg.OPTIM.LR_POLICY == "edward":
+            lr, lr_to_loss = optim.get_iter_lr_edward(model, loss_fun, inputs, labels_one_hot, optimizer, cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
         optim.set_lr(optimizer, lr)
@@ -215,6 +217,7 @@ def train_model():
         # Save a checkpoint
         file = cp.save_checkpoint(model, ema, optimizer, cur_epoch, test_err, ema_err)
         logger.info("Wrote checkpoint to: {}".format(file))
+    # optim.plot_lr_fun()
 
 
 def test_model():
