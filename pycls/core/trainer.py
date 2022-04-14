@@ -138,7 +138,6 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs
             logger.info(logging.dump_log_data(les_data,"les"))
     # Log epoch stats
     meter.log_epoch_stats(cur_epoch)
-    return lr
 
 @torch.no_grad()
 def test_epoch(loader, model, meter, cur_epoch):
@@ -204,7 +203,7 @@ def train_model():
     for cur_epoch in range(start_epoch, cfg.OPTIM.MAX_EPOCH):
         # Train for one epoch
         params = (train_loader, model, ema, loss_fun, optimizer, scaler, train_meter, best_lrs)
-        prev_lr=train_epoch(*params, cur_epoch)
+        train_epoch(*params, cur_epoch)
         # Compute precise BN stats
         if cfg.BN.USE_PRECISE_STATS:
             net.compute_precise_bn_stats(model, train_loader)
