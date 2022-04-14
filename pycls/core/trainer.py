@@ -130,13 +130,13 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         meter.update_stats(top1_err, top5_err, loss, lr, mb_size)
         meter.log_iter_stats(cur_epoch, cur_iter)
         meter.iter_tic()
-        if cfg.OPTIM.LR_POLICY=="les":
+        if cfg.OPTIM.LR_POLICY=="les" or cfg.OPTIM.LR_POLICY=="edward":
             les_data={
                 "best_lr": lr,
                 "lr_to_loss":lr_to_loss,
                 "loss": loss,
             }
-            logger.info(logging.dump_log_data(les_data,"les"))
+            logger.info(logging.dump_log_data(les_data,cfg.OPTIM.LR_POLICY))
     # Log epoch stats
     meter.log_epoch_stats(cur_epoch)
     return lr
