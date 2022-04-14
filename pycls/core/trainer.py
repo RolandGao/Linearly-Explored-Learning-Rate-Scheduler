@@ -108,7 +108,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         scaler.scale(loss).backward()
         # Update the learning rate
         if cfg.OPTIM.LR_POLICY=="les":
-            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, optimizer)
+            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, optimizer,cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
         optim.set_lr(optimizer, lr)

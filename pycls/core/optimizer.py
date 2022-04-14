@@ -116,7 +116,6 @@ def get_lr_fun():
     assert cfg.OPTIM.LR_POLICY != "exp" or cfg.OPTIM.MIN_LR > 0, err_str
     return globals()[lr_fun]
 
-
 def get_epoch_lr(cur_epoch):
     """Retrieves the lr for the given epoch according to the policy."""
     # Get lr and scale by by BASE_LR
@@ -164,15 +163,25 @@ def get_neighbour_lrs():
     lrs=list(lrs)
     return lrs
 
+def get_cos_lr(cur_epoch):
+    lr = 0.5 * (1.0 + np.cos(np.pi * cur_epoch / cfg.OPTIM.MAX_EPOCH))
+    lr=(1.0 - cfg.OPTIM.MIN_LR) * lr + cfg.OPTIM.MIN_LR
+    lr=lr* cfg.OPTIM.BASE_LR
+    if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
+        alpha = cur_epoch / cfg.OPTIM.WARMUP_EPOCHS
+        warmup_factor = cfg.OPTIM.WARMUP_FACTOR * (1.0 - alpha) + alpha
+        lr *= warmup_factor
+    return lr
+
 class LR_Finder:
     def __init__(self,version=1,history_len=10):
         self.prev_lrs=deque(maxlen=history_len)
         self.version=version
+        self.prev_lrs.append(cfg.OPTIM.BASE_LR)
     def get_prev_lr(self):
-        if len(self.prev_lrs) != 0:
-            return self.prev_lrs[-1]
-        return cfg.OPTIM.BASE_LR
-    def get_lrs(self):
+        assert len(self.prev_lrs) != 0
+        return self.prev_lrs[-1]
+    def get_lrs(self,cur_epoch):
         if self.version==1:
             lr=self.get_prev_lr()
             lrs=np.linspace(lr/2,lr*1.5,num=5)
@@ -181,19 +190,23 @@ class LR_Finder:
         elif self.version==3:
             lr=self.get_prev_lr()
             lrs=np.linspace(lr/2,lr*2,num=10)
-            lrs=[0]+list(lrs)
+            lrs=list(lrs)
         elif self.version==4:
             lr=self.get_prev_lr()
             lrs=np.linspace(lr/3,lr*3,num=10)
-            lrs=[0]+list(lrs)
+            lrs=list(lrs)
         elif self.version==5:
             lr=self.get_prev_lr()
             lrs=np.linspace(lr/10,lr*10,num=20)
-            lrs=[0]+list(lrs)
+            lrs=list(lrs)
         elif self.version==6:
             mean=np.mean(self.prev_lrs)
-            std=np.std(self.prev_lrs)
+            std=max(np.std(self.prev_lrs),0.001)
             lrs=list(np.linspace(mean-std*2,mean+std*2,num=10))
+        elif self.version==7:
+            # Remember to set cfg.OPTIM.BASE_LR correctly for this one
+            # this is the baseline cos lr scheduler, train this for sanity check
+            lrs=[get_cos_lr(cur_epoch)]
         else:
             raise NotImplementedError()
         lrs=[max(round(lr,4),0) for lr in list(lrs)]
@@ -233,13 +246,13 @@ def setup_p_grad(optimizer):
                     p.grad=torch.clone(state["momentum_buffer"])
 
 @torch.no_grad()
-def get_iter_lr(model, loss_fun, image, target, optimizer):
+def get_iter_lr(model, loss_fun, image, target, optimizer,cur_epoch):
     lr_to_loss={}
     cur_lr=0 # no previous lr, set to 0
     if not hasattr(get_iter_lr,"lr_finder"):
         get_iter_lr.lr_finder=LR_Finder(version=cfg.OPTIM.VERSION, history_len=10)
     lr_finder=get_iter_lr.lr_finder
-    lrs=lr_finder.get_lrs()
+    lrs=lr_finder.get_lrs(cur_epoch)
     setup_p_grad(optimizer)
 
     # testing each learning rate
