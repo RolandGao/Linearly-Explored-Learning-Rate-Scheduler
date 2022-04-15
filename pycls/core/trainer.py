@@ -83,7 +83,7 @@ def get_weights_file(weights_file):
     return weights_file
 
 
-def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs, cur_epoch):
+def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoch):
     """Performs one epoch of training."""
     # Shuffle the data
     data_loader.shuffle(loader, cur_epoch)
@@ -111,7 +111,6 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs
             lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, optimizer,cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
-        best_lrs.append(lr)
         optim.set_lr(optimizer, lr)
         scaler.step(optimizer)
         scaler.update()
@@ -198,11 +197,10 @@ def train_model():
     if start_epoch == 0 and cfg.PREC_TIME.NUM_ITER > 0:
         benchmark.compute_time_full(model, loss_fun, train_loader, test_loader)
     # Perform the training loop
-    best_lrs = [] # to record the best learning rate when using LES Policy
     logger.info("Start epoch: {}".format(start_epoch + 1))
     for cur_epoch in range(start_epoch, cfg.OPTIM.MAX_EPOCH):
         # Train for one epoch
-        params = (train_loader, model, ema, loss_fun, optimizer, scaler, train_meter, best_lrs)
+        params = (train_loader, model, ema, loss_fun, optimizer, scaler, train_meter)
         train_epoch(*params, cur_epoch)
         # Compute precise BN stats
         if cfg.BN.USE_PRECISE_STATS:
@@ -217,10 +215,6 @@ def train_model():
         file = cp.save_checkpoint(model, ema, optimizer, cur_epoch, test_err, ema_err)
         logger.info("Wrote checkpoint to: {}".format(file))
 
-    if cfg.OPTIM.LR_POLICY=="les":
-        optim.plot_les_lr_fun(start_epoch, best_lrs)
-    else:
-        optim.plot_lr_fun()
 
 def test_model():
     """Evaluates a trained model."""
