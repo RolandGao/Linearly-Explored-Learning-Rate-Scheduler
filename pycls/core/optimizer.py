@@ -158,7 +158,7 @@ def plot_les_lr_fun(start_epoch, lrs):
 def get_cos_lr(cur_epoch):
     lr = 0.5 * (1.0 + np.cos(np.pi * cur_epoch / cfg.OPTIM.MAX_EPOCH))
     lr=(1.0 - cfg.OPTIM.MIN_LR) * lr + cfg.OPTIM.MIN_LR
-    lr=lr* cfg.OPTIM.BASE_LR
+    lr=lr* 1.0 # hard coded BASE_LR=1.0
     if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
         alpha = cur_epoch / cfg.OPTIM.WARMUP_EPOCHS
         warmup_factor = cfg.OPTIM.WARMUP_FACTOR * (1.0 - alpha) + alpha
