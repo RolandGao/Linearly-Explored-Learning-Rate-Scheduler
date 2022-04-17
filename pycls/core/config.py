@@ -253,6 +253,8 @@ _C.OPTIM.MIN_LR = 0.0
 # Learning rate policy select from {'cos', 'exp', 'lin', 'steps'}
 _C.OPTIM.LR_POLICY = "cos"
 
+_C.OPTIM.SECOND_LOADER=True
+
 # Steps for 'steps' policy (in epochs)
 _C.OPTIM.STEPS = []
 

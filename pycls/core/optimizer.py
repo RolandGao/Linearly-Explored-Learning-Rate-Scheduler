@@ -198,6 +198,11 @@ class LR_Finder:
             # Remember to set cfg.OPTIM.BASE_LR correctly for this one
             # this is the baseline cos lr scheduler, train this for sanity check
             lrs=[get_cos_lr(cur_epoch)]
+        elif self.version==8:
+            if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
+                lrs=[get_cos_lr(cur_epoch)]
+            else:
+                lrs=[0,0.001,0.005,0.01,0.05,0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,1.5,2.0]
         else:
             raise NotImplementedError()
         lrs=[max(round(lr,4),0) for lr in list(lrs)]

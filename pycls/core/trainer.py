@@ -82,6 +82,14 @@ def get_weights_file(weights_file):
         torch.distributed.barrier()
     return weights_file
 
+def prepare_data(inputs,labels):
+    # Transfer the data to the current GPU device
+    inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
+    # Convert labels to smoothed one-hot vector
+    labels_one_hot = net.smooth_one_hot_labels(labels)
+    # Apply mixup to the batch (no effect if mixup alpha is 0)
+    inputs, labels_one_hot, labels = net.mixup(inputs, labels_one_hot)
+    return inputs,labels_one_hot,labels
 
 def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs, cur_epoch):
     """Performs one epoch of training."""
@@ -92,13 +100,11 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs
     ema.train()
     meter.reset()
     meter.iter_tic()
+
+    if cfg.OPTIM.LR_POLICY=="les" and cfg.OPTIM.SECOND_LOADER:
+        les_loader=iter(loader)
     for cur_iter, (inputs, labels) in enumerate(loader):
-        # Transfer the data to the current GPU device
-        inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
-        # Convert labels to smoothed one-hot vector
-        labels_one_hot = net.smooth_one_hot_labels(labels)
-        # Apply mixup to the batch (no effect if mixup alpha is 0)
-        inputs, labels_one_hot, labels = net.mixup(inputs, labels_one_hot)
+        inputs,labels_one_hot,labels=prepare_data(inputs,labels)
         # Perform the forward pass and compute the loss
         with amp.autocast(enabled=cfg.TRAIN.MIXED_PRECISION):
             preds = model(inputs)
@@ -108,7 +114,11 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, best_lrs
         scaler.scale(loss).backward()
         # Update the learning rate
         if cfg.OPTIM.LR_POLICY=="les":
-            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs, labels_one_hot, optimizer,cur_epoch)
+            inputs2,labels_one_hot2=inputs,labels_one_hot
+            if cfg.OPTIM.SECOND_LOADER:
+                inputs2, labels2=next(les_loader)
+                inputs2,labels_one_hot2,labels2=prepare_data(inputs2,labels2)
+            lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs2, labels_one_hot2, optimizer,cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
         best_lrs.append(lr)
