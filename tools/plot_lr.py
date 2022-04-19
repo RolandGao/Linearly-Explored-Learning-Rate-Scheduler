@@ -2,6 +2,8 @@ import sys
 import argparse
 import json
 import matplotlib.pyplot as plt
+import os
+import glob
 
 def parse_args():
     """Parse command line options (filename and mode)."""
@@ -9,7 +11,7 @@ def parse_args():
     help_s = "log file location"
     parser.add_argument("--filename", help=help_s, required=True, type=str)
     help_s, choices = "lr plot mode", ["epoch", "iter"]
-    parser.add_argument("--mode", help=help_s, choices=choices, default="epoch", type=str)
+    parser.add_argument("--mode", help=help_s, choices=choices, default="iter", type=str)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -17,6 +19,7 @@ def parse_args():
 
     return parser.parse_args()
 
+# def plot_les_helper(x,y,legend,)
 
 def plot_les_fun(data, start_epoch, max_epoch, mode, label, filename=None):
 
@@ -38,9 +41,27 @@ def plot_les_fun(data, start_epoch, max_epoch, mode, label, filename=None):
     else:
         print("showing file")
         plt.show()
+def plot_weight_norms(in_dir,out_dir):
+    filenames=glob.glob(f"{in_dir}/*/*.log")
+    print(filenames)
+    for filename in filenames:
+        label=filename.split("/")[-2]
+        lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
+        # print(weights_last)
+        iterations=list(range(start_epoch, max_epoch + 1))
+        if len(weights_first)>0:
+            plt.plot(iterations,weights_first,label=f"w1_{label}")
+        if len(weights_last)>0:
+            plt.plot(iterations,weights_last,label=f"w2_{label}")
+    plt.xlabel("iterations")
+    plt.ylabel("L2 norm")
+    plt.legend()
+    os.makedirs(out_dir,exist_ok=True)
+    plt.savefig(os.path.join(out_dir,"weight_norms.pdf"))
+    plt.show()
 
-    
-def extract_lrs(filename, mode):
+
+def extract_les_data(filename, mode):
     lrs = []
     weights_first = []
     weights_last = []
@@ -48,7 +69,7 @@ def extract_lrs(filename, mode):
         start_epoch = -1 if mode == "epoch" else 1
         max_epoch = -1 if mode == "epoch" else 0
         for line in f.readlines():
-            if start_epoch == -1 and "Start epoch" in line: 
+            if start_epoch == -1 and "Start epoch" in line:
                 start_epoch = int(line.split()[4])
 
             if mode == "epoch":
@@ -78,7 +99,7 @@ def extract_lrs(filename, mode):
                     weights_first.append(line["weight_norm_first_layer"])
                     weights_last.append(line["weight_norm_last_layer"])
                     max_epoch += 1
-                
+
     return lrs, weights_first, weights_last, start_epoch, max_epoch
 
 def main():
@@ -87,13 +108,12 @@ def main():
     mode = parser.mode
     print(filename)
     print(mode)
-    
-    lrs, weights_first, weights_last, start_epoch, max_epoch = extract_lrs(filename, mode)
+
+    lrs, weights_first, weights_last, start_epoch, max_epoch = extract_les_data(filename, mode)
     plot_les_fun(lrs, start_epoch, max_epoch, mode, label="learning rate",filename=filename + "_lr")
 
     plot_les_fun(weights_first, start_epoch, max_epoch, mode, label="last weight norm",filename=filename + "_wn_last")
     plot_les_fun(weights_last, start_epoch, max_epoch, mode, label="first weight norm",filename=filename + "_wn_first")
-    
+
 if __name__ == "__main__":
-    main()
-        
+    plot_weight_norms("../Final","figures")
