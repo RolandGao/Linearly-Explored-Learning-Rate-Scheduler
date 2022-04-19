@@ -202,7 +202,13 @@ class LR_Finder:
             if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
                 lrs=[get_cos_lr(cur_epoch)]
             else:
-                lrs=[0,0.001,0.005,0.01,0.05,0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,1.5,2.0]
+                lrs=[0,0.001,0.002,0.005,0.01,0.02,0.05,0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
+        elif self.version==9:
+            if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
+                lrs=[get_cos_lr(cur_epoch)]
+            else:
+                lr=self.get_prev_lr()
+                lrs=np.linspace(lr/2,lr*1.5,num=5)
         else:
             raise NotImplementedError()
         lrs=[max(round(lr,4),0) for lr in list(lrs)]
