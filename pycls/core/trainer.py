@@ -154,6 +154,13 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
             }
             logger.info(logging.dump_log_data(les_data,"les"))
     # Log epoch stats
+    if cfg.OPTIM.LR_POLICY=="les":
+        les_data={
+            "epoch": cur_epoch,
+            "weight_norm_first_layer": weight_norm_first.item(),
+            "weight_norm_last_layer": weight_norm_last.item(),
+        }
+        logger.info(logging.dump_log_data(les_data,"les_epoch"))
     meter.log_epoch_stats(cur_epoch)
 
 @torch.no_grad()

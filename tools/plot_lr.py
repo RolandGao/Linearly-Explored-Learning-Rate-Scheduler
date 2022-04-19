@@ -52,13 +52,22 @@ def extract_lrs(filename, mode):
                 start_epoch = int(line.split()[4])
 
             if mode == "epoch":
-                if "train_epoch" in line:
+                is_train_epoch = "train_epoch" in line
+                is_les_epoch = "les_epoch" in line
+                if is_les_epoch or is_train_epoch:
                     line = line.split("{")[1]
                     line = "{" + line
                     # dictionary of data
                     line = json.loads(line)
-                    lrs.append(line["lr"])
+
                     max_epoch = int(line["epoch"].split("/")[0])
+                    if is_train_epoch:
+                        lrs.append(line["lr"])
+
+                    if is_les_epoch:
+                        weights_first.append(line["weight_norm_first_layer"])
+                        weights_last.append(line["weight_norm_last_layer"])
+
             elif mode == "iter":
                 if "best_lr" in line:
                     line = line.split()[3:]
@@ -81,9 +90,8 @@ def main():
     lrs, weights_first, weights_last, start_epoch, max_epoch = extract_lrs(filename, mode)
     plot_les_fun(lrs, start_epoch, max_epoch, mode, label="learning rate",filename=filename + "_lr")
 
-    if mode == "iter":
-        plot_les_fun(weights_first, start_epoch, max_epoch, mode, label="last weight norm",filename=filename + "_wn_last")
-        plot_les_fun(weights_last, start_epoch, max_epoch, mode, label="first weight norm",filename=filename + "_wn_first")
+    plot_les_fun(weights_first, start_epoch, max_epoch, mode, label="last weight norm",filename=filename + "_wn_last")
+    plot_les_fun(weights_last, start_epoch, max_epoch, mode, label="first weight norm",filename=filename + "_wn_first")
     
 if __name__ == "__main__":
     main()
