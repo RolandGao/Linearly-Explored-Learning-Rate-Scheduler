@@ -60,13 +60,14 @@ def extract_lrs(filename, mode):
                     # dictionary of data
                     line = json.loads(line)
 
-                    max_epoch = int(line["epoch"].split("/")[0])
                     if is_train_epoch:
                         lrs.append(line["lr"])
+                        max_epoch = int(line["epoch"].split("/")[0])
 
                     if is_les_epoch:
                         weights_first.append(line["weight_norm_first_layer"])
                         weights_last.append(line["weight_norm_last_layer"])
+                        max_epoch = int(line["epoch"])
 
             elif mode == "iter":
                 if "best_lr" in line:
