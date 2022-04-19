@@ -121,6 +121,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
             lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs2, labels_one_hot2, optimizer,cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
+            
         optim.set_lr(optimizer, lr)
         scaler.step(optimizer)
         scaler.update()
@@ -138,11 +139,18 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
         meter.update_stats(top1_err, top5_err, loss, lr, mb_size)
         meter.log_iter_stats(cur_epoch, cur_iter)
         meter.iter_tic()
+
+        modules = list(model.children())
+        weight_norm_first = modules[0].conv.weight.norm()
+        weight_norm_last = modules[-1].fc.weight.norm()
+
         if cfg.OPTIM.LR_POLICY=="les":
             les_data={
                 "best_lr": lr,
                 "lr_to_loss":lr_to_loss,
                 "loss": loss,
+                "weight_norm_first_layer": weight_norm_first.item(),
+                "weight_norm_last_layer": weight_norm_last.item(),
             }
             logger.info(logging.dump_log_data(les_data,"les"))
     # Log epoch stats
