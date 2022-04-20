@@ -13,7 +13,6 @@ import plotly.graph_objs as go
 import plotly.offline as offline
 import pycls.core.logging as logging
 
-
 def get_plot_colors(max_colors, color_format="pyplot"):
     """Generate colors for plotting."""
     colors = cl.scales["11"]["qual"]["Paired"]
@@ -28,7 +27,7 @@ def prepare_plot_data(log_files, names, metric="top1_err"):
     """Load logs and extract data for plotting error curves."""
     plot_data = []
     for file, name in zip(log_files, names):
-        d, data = {}, logging.sort_log_data(logging.load_log_data(file))
+        d, data = {}, logging.sort_log_data(logging.load_log_data(file,["les","les_epoch"]))
         for phase in ["train", "test"]:
             x = data[phase + "_epoch"]["epoch_ind"]
             y = data[phase + "_epoch"][metric]
@@ -130,3 +129,15 @@ def plot_error_curves_pyplot(log_files, names, filename=None, metric="top1_err")
         plt.clf()
     else:
         plt.show()
+
+def main():
+    import glob
+    import os
+    filenames=glob.glob(f"Final/*/*.log")
+    labels=[filename.split("/")[-2] for filename in filenames]
+    filenames=filenames+["logs/version8.log"]
+    labels=labels+["version8"]
+    plot_error_curves_pyplot(filenames,labels)
+
+if __name__=="__main__":
+    main()

@@ -41,13 +41,22 @@ def plot_les_fun(data, start_epoch, max_epoch, mode, label, filename=None):
     else:
         print("showing file")
         plt.show()
-def plot_weight_norms(in_dir,out_dir):
-    filenames=glob.glob(f"{in_dir}/*/*.log")
-    print(filenames)
-    for filename in filenames:
-        label=filename.split("/")[-2]
+def plot_lrs(filenames,labels,out_dir):
+    for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
-        # print(weights_last)
+        iterations=list(range(start_epoch, max_epoch + 1))
+        if len(lrs)>0:
+            plt.plot(iterations,lrs,label=label)
+    plt.xlabel("iterations")
+    plt.ylabel("lr")
+    plt.legend()
+    os.makedirs(out_dir,exist_ok=True)
+    plt.savefig(os.path.join(out_dir,"lrs.pdf"))
+    plt.show()
+
+def plot_weight_norms(filenames,labels,out_dir):
+    for filename,label in zip(filenames,labels):
+        lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
         iterations=list(range(start_epoch, max_epoch + 1))
         if len(weights_first)>0:
             plt.plot(iterations,weights_first,label=f"w1_{label}")
@@ -86,8 +95,9 @@ def extract_les_data(filename, mode):
                         max_epoch = int(line["epoch"].split("/")[0])
 
                     if is_les_epoch:
-                        weights_first.append(line["weight_norm_first_layer"])
-                        weights_last.append(line["weight_norm_last_layer"])
+                        if "weight_norm_first_layer" in line:
+                            weights_first.append(line["weight_norm_first_layer"])
+                            weights_last.append(line["weight_norm_last_layer"])
                         max_epoch = int(line["epoch"])
 
             elif mode == "iter":
@@ -96,8 +106,9 @@ def extract_les_data(filename, mode):
                     line = " ".join(line)
                     line = json.loads(line)
                     lrs.append(line["best_lr"])
-                    weights_first.append(line["weight_norm_first_layer"])
-                    weights_last.append(line["weight_norm_last_layer"])
+                    if "weight_norm_first_layer" in line:
+                        weights_first.append(line["weight_norm_first_layer"])
+                        weights_last.append(line["weight_norm_last_layer"])
                     max_epoch += 1
 
     return lrs, weights_first, weights_last, start_epoch, max_epoch
@@ -115,5 +126,13 @@ def main():
     plot_les_fun(weights_first, start_epoch, max_epoch, mode, label="last weight norm",filename=filename + "_wn_last")
     plot_les_fun(weights_last, start_epoch, max_epoch, mode, label="first weight norm",filename=filename + "_wn_first")
 
+
+def main2():
+    filenames=glob.glob("Final/*/*.log")
+    labels=[filename.split("/")[-2] for filename in filenames]
+    filenames.extend(["logs/version8.log"])
+    labels.extend(["version8"])
+    plot_lrs(filenames,labels,"figures")
 if __name__ == "__main__":
-    plot_weight_norms("../Final","figures")
+    main2()
+    # plot_weight_norms("../Final","figures")
