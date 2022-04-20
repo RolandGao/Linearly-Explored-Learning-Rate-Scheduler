@@ -63,10 +63,12 @@ def plot_weight_norms(filenames,labels,out_dir):
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
         iterations=list(range(start_epoch, max_epoch + 1))
-        # if len(weights_first)>0:
-        #     plt.plot(iterations,weights_first,label=f"w1_{label}")
-        if len(weights_last)>0:
-            plt.plot(iterations,weights_last,label=f"w2_{label}")
+        if len(weights_first)>0:
+            plt.plot(iterations,weights_first,label=f"w1_{label}")
+        # if len(weights_last)>0:
+        #     print(label)
+        #     print(len(weights_last))
+        #     plt.plot(iterations,weights_last,label=f"w2_{label}")
     plt.xlabel("iterations")
     plt.ylabel("L2 norm")
     plt.legend()
@@ -135,10 +137,10 @@ def main():
 def main2():
     filenames=glob.glob(f"Final/*/*.log")
     labels=[os.path.normpath(filename).split(os.sep)[-2] for filename in filenames]
-    filenames2=glob.glob(f"logs2/*.log")
-    labels2=[os.path.normpath(filename).split(os.sep)[-1] for filename in filenames2]
-    filenames.extend(filenames2)
-    labels.extend(labels2)
+    # filenames2=glob.glob(f"logs2/*.log")
+    # labels2=[os.path.normpath(filename).split(os.sep)[-1] for filename in filenames2]
+    # filenames.extend(filenames2)
+    # labels.extend(labels2)
     plot_lrs(filenames,labels,"figures")
     # plot_weight_norms(filenames,labels,"figures")
 if __name__ == "__main__":

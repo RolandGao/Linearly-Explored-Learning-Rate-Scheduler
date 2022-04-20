@@ -12,9 +12,19 @@ import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 import plotly.offline as offline
 import pycls.core.logging as logging
+import torch
+import numpy as np
+
+def get_default_colors():
+    palette = torch.tensor([2 ** 25 - 1, 2 ** 15 - 1, 2 ** 21 - 1])
+    colors = torch.arange(255).view(-1, 1) * palette
+    colors = (colors % 255).numpy().astype("uint8")
+    return colors
 
 def get_plot_colors(max_colors, color_format="pyplot"):
     """Generate colors for plotting."""
+    # colors=np.array([[128,0,0],[255,0,0],[255,165,0],[184,134,11],[0,100,0],[30,144,255],[0,0,255],[75,0,130]])
+    # return list(colors/255.0)
     colors = cl.scales["11"]["qual"]["Paired"]
     if max_colors > len(colors):
         colors = cl.to_rgb(cl.interp(colors, max_colors))
@@ -137,12 +147,12 @@ def plot_loss_curves_pyplot(log_files, names, filename=None, metric="top1_err"):
     for ind, d in enumerate(plot_data):
         c= colors[ind]
         lbl=d["train_label"]
-        plt.plot(d["x_train"], d["y_train"], "--", c=c, alpha=0.8, label=lbl)
+        plt.plot(d["x_train"], d["y_train"], "-", c=c, alpha=0.8, label=lbl)
         # lbl=d["test_label"]
         # plt.plot(d["x_test"], d["y_test"], "-", c=c, alpha=0.8, label=lbl)
-    plt.title(metric + " vs. epoch\n[dash=train, solid=test]", fontsize=14)
+    plt.title("train loss vs. epoch", fontsize=14)
     plt.xlabel("epoch", fontsize=14)
-    plt.ylabel(metric, fontsize=14)
+    plt.ylabel("train loss", fontsize=14)
     plt.grid(alpha=0.4)
     plt.legend()
     if filename:
@@ -154,15 +164,24 @@ def plot_loss_curves_pyplot(log_files, names, filename=None, metric="top1_err"):
 def main():
     import glob
     import os
-    filenames=glob.glob(f"Final/*/*.log")
-    # filenames=[filename for filename in filenames if "les" in filename]
-    labels=[filename.split("/")[-2] for filename in filenames]
-    filenames2=glob.glob(f"logs2/*.log")
-    labels2=[filename.split("/")[-1] for filename in filenames2]
-    filenames.extend(filenames2)
-    labels.extend(labels2)
-    # plot_error_curves_pyplot(filenames,labels)
-    plot_loss_curves_pyplot(filenames,labels,metric="loss")
+
+    lr_scheduler_keywords=["cos","exp","lin","steps","les-v8-batch256"]
+    optimizer_keywords=["adam","adamw","cos","les-v8-batch256"]
+    def string_in_list(l,s):
+        for x in l:
+            if x in s:
+                return True
+        return False
+    # filenames2=glob.glob(f"logs2/*.log")
+    # labels2=[filename.split("/")[-1] for filename in filenames2]
+    # filenames.extend(filenames2)
+    # labels.extend(labels2)
+    for topic,keywords in [("lr_scheduler",lr_scheduler_keywords),("optimizer",optimizer_keywords)]:
+        filenames=glob.glob(f"Final/*/*.log")
+        filenames=[filename for filename in filenames if string_in_list(keywords,filename)]
+        labels=[filename.split("/")[-2] for filename in filenames]
+        plot_error_curves_pyplot(filenames,labels,f"figures/{topic}_top1_err_vs_time.pdf")
+        plot_loss_curves_pyplot(filenames,labels,f"figures/{topic}_loss_vs_time.pdf",metric="loss")
 
 if __name__=="__main__":
     main()
