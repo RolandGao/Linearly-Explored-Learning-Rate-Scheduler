@@ -208,7 +208,7 @@ class LR_Finder:
                 lrs=[get_cos_lr(cur_epoch)]
             else:
                 lr=max(self.get_prev_lr(), cfg.OPTIM.MIN_LR)
-                lrs=np.linspace(lr/2,lr*1.5,num=5)
+                lrs=np.linspace(lr/1.5,lr*2,num=5)
         else:
             raise NotImplementedError()
         lrs=[max(round(lr,6),0) for lr in list(lrs)]
