@@ -134,12 +134,13 @@ def main():
 
 def main2():
     filenames=glob.glob(f"Final/*/*.log")
-    labels=[filename.split("/")[-2] for filename in filenames]
+    labels=[os.path.normpath(filename).split(os.sep)[-2] for filename in filenames]
     filenames2=glob.glob(f"logs2/*.log")
-    labels2=[filename.split("/")[-1] for filename in filenames2]
+    labels2=[os.path.normpath(filename).split(os.sep)[-1] for filename in filenames2]
     filenames.extend(filenames2)
     labels.extend(labels2)
     plot_lrs(filenames,labels,"figures")
     # plot_weight_norms(filenames,labels,"figures")
 if __name__ == "__main__":
+    # main()
     main2()
