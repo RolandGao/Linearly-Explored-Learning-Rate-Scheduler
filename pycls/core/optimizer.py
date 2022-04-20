@@ -207,11 +207,11 @@ class LR_Finder:
             if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
                 lrs=[get_cos_lr(cur_epoch)]
             else:
-                lr=self.get_prev_lr()
+                lr=max(self.get_prev_lr(), cfg.OPTIM.MIN_LR)
                 lrs=np.linspace(lr/2,lr*1.5,num=5)
         else:
             raise NotImplementedError()
-        lrs=[max(round(lr,4),0) for lr in list(lrs)]
+        lrs=[max(round(lr,6),0) for lr in list(lrs)]
         lrs=sorted(set(lrs))
         return lrs
     def determine_best_lr(self,lr_to_loss):
