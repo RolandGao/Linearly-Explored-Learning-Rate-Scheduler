@@ -23,12 +23,12 @@ def get_plot_colors(max_colors, color_format="pyplot"):
     return colors
 
 
-def prepare_plot_data(log_files, names, metric="top1_err"):
+def prepare_plot_data(log_files, names, metric="top1_err",phases=("train", "test")):
     """Load logs and extract data for plotting error curves."""
     plot_data = []
     for file, name in zip(log_files, names):
         d, data = {}, logging.sort_log_data(logging.load_log_data(file,["les","les_epoch"]))
-        for phase in ["train", "test"]:
+        for phase in phases:
             x = data[phase + "_epoch"]["epoch_ind"]
             y = data[phase + "_epoch"][metric]
             d["x_" + phase], d["y_" + phase] = x, y
@@ -130,14 +130,39 @@ def plot_error_curves_pyplot(log_files, names, filename=None, metric="top1_err")
     else:
         plt.show()
 
+def plot_loss_curves_pyplot(log_files, names, filename=None, metric="top1_err"):
+    """Plot error curves using matplotlib.pyplot and save to file."""
+    plot_data = prepare_plot_data(log_files, names, metric,("train",))
+    colors = get_plot_colors(len(names))
+    for ind, d in enumerate(plot_data):
+        c= colors[ind]
+        lbl=d["train_label"]
+        plt.plot(d["x_train"], d["y_train"], "--", c=c, alpha=0.8, label=lbl)
+        # lbl=d["test_label"]
+        # plt.plot(d["x_test"], d["y_test"], "-", c=c, alpha=0.8, label=lbl)
+    plt.title(metric + " vs. epoch\n[dash=train, solid=test]", fontsize=14)
+    plt.xlabel("epoch", fontsize=14)
+    plt.ylabel(metric, fontsize=14)
+    plt.grid(alpha=0.4)
+    plt.legend()
+    if filename:
+        plt.savefig(filename)
+        plt.clf()
+    else:
+        plt.show()
+
 def main():
     import glob
     import os
     filenames=glob.glob(f"Final/*/*.log")
+    # filenames=[filename for filename in filenames if "les" in filename]
     labels=[filename.split("/")[-2] for filename in filenames]
-    filenames=filenames+["logs/version8.log"]
-    labels=labels+["version8"]
-    plot_error_curves_pyplot(filenames,labels)
+    filenames2=glob.glob(f"logs2/*.log")
+    labels2=[filename.split("/")[-1] for filename in filenames2]
+    filenames.extend(filenames2)
+    labels.extend(labels2)
+    # plot_error_curves_pyplot(filenames,labels)
+    plot_loss_curves_pyplot(filenames,labels,metric="loss")
 
 if __name__=="__main__":
     main()

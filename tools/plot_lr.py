@@ -4,6 +4,7 @@ import json
 import matplotlib.pyplot as plt
 import os
 import glob
+import numpy as np
 
 def parse_args():
     """Parse command line options (filename and mode)."""
@@ -41,11 +42,15 @@ def plot_les_fun(data, start_epoch, max_epoch, mode, label, filename=None):
     else:
         print("showing file")
         plt.show()
+def compute_epoch_means(x,epochs=50):
+    return np.array(x).reshape((epochs,-1)).mean(axis=1)
 def plot_lrs(filenames,labels,out_dir):
+    epochs=50
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
-        iterations=list(range(start_epoch, max_epoch + 1))
         if len(lrs)>0:
+            lrs=compute_epoch_means(lrs,epochs)
+            iterations=list(range(len(lrs)))
             plt.plot(iterations,lrs,label=label)
     plt.xlabel("iterations")
     plt.ylabel("lr")
@@ -58,8 +63,8 @@ def plot_weight_norms(filenames,labels,out_dir):
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
         iterations=list(range(start_epoch, max_epoch + 1))
-        if len(weights_first)>0:
-            plt.plot(iterations,weights_first,label=f"w1_{label}")
+        # if len(weights_first)>0:
+        #     plt.plot(iterations,weights_first,label=f"w1_{label}")
         if len(weights_last)>0:
             plt.plot(iterations,weights_last,label=f"w2_{label}")
     plt.xlabel("iterations")
@@ -128,12 +133,14 @@ def main():
 
 
 def main2():
-    filenames=glob.glob("Final/*/*.log")
+    filenames=glob.glob(f"Final/*/*.log")
     labels=[os.path.normpath(filename).split(os.sep)[-2] for filename in filenames]
-    # filenames.extend(["logs/version8.log"])
-    # labels.extend(["version8"])
+    filenames2=glob.glob(f"logs2/*.log")
+    labels2=[os.path.normpath(filename).split(os.sep)[-1] for filename in filenames2]
+    filenames.extend(filenames2)
+    labels.extend(labels2)
     plot_lrs(filenames,labels,"figures")
+    # plot_weight_norms(filenames,labels,"figures")
 if __name__ == "__main__":
     # main()
     main2()
-    # plot_weight_norms("../Final","figures")
