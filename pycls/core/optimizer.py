@@ -168,6 +168,7 @@ class LR_Finder:
     def __init__(self,version=1,history_len=10):
         self.prev_lrs=deque(maxlen=history_len)
         self.version=version
+        self.cooldown_lr=None
         self.prev_lrs.append(cfg.OPTIM.BASE_LR)
     def get_prev_lr(self):
         assert len(self.prev_lrs) != 0
@@ -201,8 +202,13 @@ class LR_Finder:
         elif self.version==8:
             if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
                 lrs=[get_cos_lr(cur_epoch)]
+            elif cur_epoch >= cfg.OPTIM.COOLDOWN_EPOCHS:  
+                if not self.cooldown_lr:
+                    self.cooldown_lr = float(np.mean(self.prev_lrs))
+                lrs = [(cfg.OPTIM.MAX_EPOCH - cur_epoch)/(cfg.OPTIM.MAX_EPOCH-cfg.OPTIM.COOLDOWN_EPOCHS + 2) * self.cooldown_lr]
             else:
                 lrs=[0,0.001,0.002,0.005,0.01,0.02,0.05,0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
+
         elif self.version==9:
             if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
                 lrs=[get_cos_lr(cur_epoch)]
@@ -218,8 +224,7 @@ class LR_Finder:
         best_lr = min(lr_to_loss, key=lr_to_loss.get)
         self.prev_lrs.append(best_lr)
         return best_lr
-
-
+    
 @torch.no_grad()
 def setup_p_grad(optimizer):
     # incorporate weight decay into p.grad
