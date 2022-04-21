@@ -289,6 +289,7 @@ _C.OPTIM.WARMUP_FACTOR = 0.1
 
 # Gradually warm up the OPTIM.BASE_LR over this number of epochs
 _C.OPTIM.WARMUP_EPOCHS = 0
+_C.OPTIM.COOLDOWN_EPOCHS = 0
 
 # Exponential Moving Average (EMA) update value
 _C.OPTIM.EMA_ALPHA = 1e-5
