@@ -165,8 +165,8 @@ def main():
     import glob
     import os
 
-    lr_scheduler_keywords=["cos","exp","lin","steps","les-v8-batch256"]
-    optimizer_keywords=["adam","adamw","cos","les-v8-batch256"]
+    lr_scheduler_keywords=["cos","exp","lin","steps","les-v8-single-cooldown"]
+    optimizer_keywords=["adam","adamw","cos","les-v8-single-cooldown"]
     def string_in_list(l,s):
         for x in l:
             if x in s:

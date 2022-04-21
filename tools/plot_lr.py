@@ -49,7 +49,8 @@ def plot_lrs(filenames,labels,out_dir):
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
         if len(lrs)>0:
-            lrs=compute_epoch_means(lrs,epochs)
+            lrs=np.convolve(lrs,np.ones(50),"valid")
+            # lrs=compute_epoch_means(lrs,epochs)
             iterations=list(range(len(lrs)))
             plt.plot(iterations,lrs,label=label)
     plt.xlabel("iterations")
@@ -60,11 +61,13 @@ def plot_lrs(filenames,labels,out_dir):
     plt.show()
 
 def plot_weight_norms(filenames,labels,out_dir):
+    epochs=50
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
-        iterations=list(range(start_epoch, max_epoch + 1))
         if len(weights_first)>0:
-            plt.plot(iterations,weights_first,label=f"w1_{label}")
+            # weights_first=compute_epoch_means(weights_first,epochs)
+            iterations=list(range(len(weights_first)))
+            plt.plot(iterations,weights_first,label=f"{label}")
         # if len(weights_last)>0:
         #     print(label)
         #     print(len(weights_last))
@@ -134,15 +137,34 @@ def main():
     plot_les_fun(weights_last, start_epoch, max_epoch, mode, label="first weight norm",filename=filename + "_wn_first")
 
 
-def main2():
-    filenames=glob.glob(f"Final/*/*.log")
-    labels=[os.path.normpath(filename).split(os.sep)[-2] for filename in filenames]
-    # filenames2=glob.glob(f"logs2/*.log")
-    # labels2=[os.path.normpath(filename).split(os.sep)[-1] for filename in filenames2]
-    # filenames.extend(filenames2)
-    # labels.extend(labels2)
+def second_loader_main():
+    # filenames=glob.glob(f"Final/*/*.log")
+    filenames=[
+        "Final/les-v7/stdout-4.log",
+        "Final/les-v8/stdout-4.log",
+        "Final/les-v8-secondloader/stdout-4.log",
+    ]
+    labels=[
+        "cos",
+        "one batch",
+        "two independent batches"
+    ]
+    plot_lrs(filenames,labels,"figures")
+    # plot_weight_norms(filenames,labels,"figures")
+def weightnorm_main():
+    # filenames=glob.glob(f"Final/*/*.log")
+    filenames=[
+        "Final/les-v7/stdout-4.log",
+        "Final/les-v2/stdout-v2.log",
+        "Final/les-v8/stdout-4.log",
+    ]
+    labels=[
+        "cos",
+        "without linear warm up",
+        "with linear warm up",
+    ]
     plot_lrs(filenames,labels,"figures")
     # plot_weight_norms(filenames,labels,"figures")
 if __name__ == "__main__":
     # main()
-    main2()
+    weightnorm_main()
