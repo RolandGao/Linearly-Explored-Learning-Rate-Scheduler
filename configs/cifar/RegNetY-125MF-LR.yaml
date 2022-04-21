@@ -16,7 +16,7 @@ OPTIM:
   VERSION: 1
   OPTIMIZER: vanilla_sgd
   MAX_EPOCH: 50
-  SECOND_LOADER: True
+  SECOND_LOADER: False
   ### these following three parameters are not used when lr_policy is les
   MOMENTUM: 0.9
   NESTEROV: False
