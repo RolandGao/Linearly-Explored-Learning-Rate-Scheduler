@@ -1,5 +1,6 @@
 # Linearly Explored Learning Rate Scheduler (LES)
 The paper corresponding to this project is linked [here](https://drive.google.com/file/d/1WJMms6Lt_i6rmZziK86rPGX_FUbYftvm/view?usp=sharing) 
+
 Colab used to run the experiments is linked [here](https://drive.google.com/file/d/1ZAxFBr6KfbXwRCfbrGLkdXUQIQK6GECW/view?usp=sharing)
 
 
