@@ -49,8 +49,8 @@ def plot_lrs(filenames,labels,out_dir):
     for filename,label in zip(filenames,labels):
         lrs, weights_first, weights_last, start_epoch, max_epoch=extract_les_data(filename,"iter")
         if len(lrs)>0:
-            lrs=np.convolve(lrs,np.ones(50),"valid")
-            # lrs=compute_epoch_means(lrs,epochs)
+            # lrs=np.convolve(lrs,np.ones(50),"valid")
+            lrs=compute_epoch_means(lrs,epochs)
             iterations=list(range(len(lrs)))
             plt.plot(iterations,lrs,label=label)
     plt.xlabel("iterations")
@@ -157,14 +157,16 @@ def weightnorm_main():
         "Final/les-v7/stdout-4.log",
         "Final/les-v2/stdout-v2.log",
         "Final/les-v8/stdout-4.log",
+        "Final/les-v10/stdout-4.log"
     ]
     labels=[
         "cos",
         "without linear warm up",
         "with linear warm up",
+        "v10"
     ]
-    plot_lrs(filenames,labels,"figures")
-    # plot_weight_norms(filenames,labels,"figures")
+    # plot_lrs(filenames,labels,"figures")
+    plot_weight_norms(filenames,labels,"figures")
 if __name__ == "__main__":
     # main()
     weightnorm_main()
