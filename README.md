@@ -1,4 +1,10 @@
-# pycls
+# Linearly Explored Learning Rate Scheduler (LES)
+The paper corresponding to this project is linked [here](https://drive.google.com/file/d/1WJMms6Lt_i6rmZziK86rPGX_FUbYftvm/view?usp=sharing) 
+
+Colab used to run the experiments is linked [here](https://drive.google.com/file/d/1ZAxFBr6KfbXwRCfbrGLkdXUQIQK6GECW/view?usp=sharing)
+
+
+## pycls
 
 **pycls** is an image classification codebase, written in [PyTorch](https://pytorch.org/). It was originally developed for the [On Network Design Spaces for Visual Recognition](https://arxiv.org/abs/1905.13214) project. **pycls** has since matured and been adopted by a number of [projects](#projects) at Facebook AI Research.
 
