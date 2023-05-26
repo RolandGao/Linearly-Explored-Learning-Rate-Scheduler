@@ -101,6 +101,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
     meter.reset()
     meter.iter_tic()
 
+    num_iterations=len(loader)
     if cfg.OPTIM.LR_POLICY=="les" and cfg.OPTIM.SECOND_LOADER:
         les_loader=iter(loader)
     for cur_iter, (inputs, labels) in enumerate(loader):
@@ -121,7 +122,7 @@ def train_epoch(loader, model, ema, loss_fun, optimizer, scaler, meter, cur_epoc
             lr,lr_to_loss=optim.get_iter_lr(model, loss_fun, inputs2, labels_one_hot2, optimizer,cur_epoch)
         else:
             lr = optim.get_epoch_lr(cur_epoch)
-            
+
         optim.set_lr(optimizer, lr)
         scaler.step(optimizer)
         scaler.update()

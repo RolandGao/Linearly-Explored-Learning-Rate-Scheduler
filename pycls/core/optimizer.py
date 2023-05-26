@@ -209,7 +209,7 @@ class LR_Finder:
             else:
                 lrs=[0,0.001,0.002,0.005,0.01,0.02,0.05,0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
 
-        elif self.version==9:
+        elif self.version==9 or self.version==11:
             if cur_epoch < cfg.OPTIM.WARMUP_EPOCHS:
                 lrs=[get_cos_lr(cur_epoch)]
             else:
@@ -264,7 +264,7 @@ def setup_p_grad(optimizer):
 @torch.no_grad()
 def get_iter_lr(model, loss_fun, image, target, optimizer,cur_epoch):
     lr_to_loss={}
-    cur_lr=0 # no previous lr, set to 0
+    prev_lr=0 # no previous lr, set to 0
     if not hasattr(get_iter_lr,"lr_finder"):
         get_iter_lr.lr_finder=LR_Finder(version=cfg.OPTIM.VERSION, history_len=10)
     lr_finder=get_iter_lr.lr_finder
@@ -273,11 +273,11 @@ def get_iter_lr(model, loss_fun, image, target, optimizer,cur_epoch):
 
     # testing each learning rate
     for lr in lrs:
-        # originally:   p <- p + prev_lr * p.grad - cur_lr * p.grad
-        # simplify:     p <- p + (prev_lr - cur_lr) * p.grad
-        #               p <- p + change_in_lr * p.grad
-        change_in_lr = lr - cur_lr
-        cur_lr = lr
+        # originally:   p <- p + prev_lr * p.grad - lr * p.grad
+        # simplify:     p <- p - (lr - prev_lr) * p.grad
+        #               p <- p - change_in_lr * p.grad
+        change_in_lr = lr - prev_lr
+        prev_lr = lr
         for p in model.parameters():
             p.add_(p.grad, alpha=-change_in_lr)
 
@@ -287,9 +287,12 @@ def get_iter_lr(model, loss_fun, image, target, optimizer,cur_epoch):
 
     # reverting the learning rate that is applied
     for p in model.parameters():
-        p.add_(p.grad,alpha=cur_lr)
+        p.add_(p.grad, alpha=prev_lr)
 
     best_lr=lr_finder.determine_best_lr(lr_to_loss)
+    if cfg.OPTIM.VERSION==11:
+        alpha=lr_fun_lin(cur_epoch)
+        best_lr=best_lr*alpha
     return best_lr, lr_to_loss
 
 

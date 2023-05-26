@@ -1,0 +1,4 @@
+When batch_size is smaller, the lr les picks is higher.
+This is because it's easier to overfit when batch_size is small.
+However, usually the best practice is to make lr linearly proportional to batch_size,
+but les's lr is inversely proportional to batch_size.
